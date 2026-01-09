@@ -2,15 +2,11 @@
   "version": 2,
   "builds": [
     {
-      "src": "django_spam_detector/wsgi.py",
-      "use": "@vercel/python",
+      "src": "build.sh",
+      "use": "@vercel/static-build",
       "config": {
-        "maxLambdaSize": "50mb"
+        "distDir": "staticfiles"
       }
-    },
-    {
-      "src": "modelo_spam_final.joblib",
-      "use": "@vercel/static"
     }
   ],
   "routes": [
@@ -20,10 +16,11 @@
     },
     {
       "src": "/(.*)",
-      "dest": "django_spam_detector/wsgi.py"
+      "dest": "/api/index"
     }
   ],
   "env": {
-    "DJANGO_SETTINGS_MODULE": "django_spam_detector.settings"
+    "DJANGO_SETTINGS_MODULE": "django_spam_detector.settings",
+    "PYTHONUNBUFFERED": "1"
   }
 }
