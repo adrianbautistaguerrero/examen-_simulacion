@@ -1,0 +1,1 @@
+# Django spam detector app

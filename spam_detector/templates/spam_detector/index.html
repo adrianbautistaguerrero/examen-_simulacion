@@ -1,0 +1,238 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detector de SPAM - ML Model</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Custom CSS -->
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --success-gradient: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            --danger-gradient: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+        }
+        
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .main-container {
+            padding: 2rem 0;
+        }
+        
+        .card {
+            border: none;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+        
+        .card-header {
+            background: var(--primary-gradient);
+            color: white;
+            padding: 2rem;
+            border: none;
+        }
+        
+        .card-header h1 {
+            margin: 0;
+            font-weight: 700;
+            font-size: 2rem;
+        }
+        
+        .card-header p {
+            margin: 0.5rem 0 0 0;
+            opacity: 0.9;
+        }
+        
+        .result-card {
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            animation: slideIn 0.5s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .result-spam {
+            background: var(--danger-gradient);
+            color: white;
+        }
+        
+        .result-ham {
+            background: var(--success-gradient);
+            color: white;
+        }
+        
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .metric-box {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 1rem;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .metric-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+            margin-bottom: 0.5rem;
+        }
+        
+        .metric-value {
+            font-size: 2rem;
+            font-weight: 700;
+        }
+        
+        .btn-analyze {
+            background: var(--primary-gradient);
+            border: none;
+            padding: 0.75rem 2rem;
+            font-weight: 600;
+            border-radius: 10px;
+            transition: transform 0.2s;
+        }
+        
+        .btn-analyze:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+        }
+        
+        .form-control, .form-control:focus {
+            border-radius: 10px;
+            border: 2px solid #e0e0e0;
+        }
+        
+        .form-control:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+        
+        .alert-custom {
+            border-radius: 10px;
+            border: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container main-container">
+        <div class="row justify-content-center">
+            <div class="col-lg-10">
+                <!-- Header Card -->
+                <div class="card mb-4">
+                    <div class="card-header text-center">
+                        <h1>🛡️ Detector de SPAM</h1>
+                        <p>Análisis de correos electrónicos con Machine Learning</p>
+                    </div>
+                </div>
+                
+                <!-- Result Display -->
+                {% if result %}
+                <div class="result-card {% if result.prediction == 'spam' %}result-spam{% else %}result-ham{% endif %}">
+                    <div class="text-center mb-3">
+                        <h2 class="mb-0">
+                            {% if result.prediction == 'spam' %}
+                                ⚠️ SPAM DETECTADO
+                            {% elif result.prediction == 'ham' %}
+                                ✅ EMAIL LEGÍTIMO (HAM)
+                            {% else %}
+                                ❌ ERROR
+                            {% endif %}
+                        </h2>
+                    </div>
+                    
+                    <div class="metrics-grid">
+                        <div class="metric-box">
+                            <div class="metric-label">Confianza</div>
+                            <div class="metric-value">{{ result.confidence }}%</div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="metric-label">Latencia</div>
+                            <div class="metric-value">{{ result.latency }}ms</div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="metric-label">Predicción</div>
+                            <div class="metric-value">{{ result.prediction|upper }}</div>
+                        </div>
+                    </div>
+                    
+                    {% if result.error %}
+                    <div class="alert alert-danger alert-custom mt-3" role="alert">
+                        <strong>Error:</strong> {{ result.error }}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+                
+                <!-- Analysis Form -->
+                <div class="card">
+                    <div class="card-body p-4">
+                        <form method="post" action="{% url 'spam_detector:index' %}">
+                            {% csrf_token %}
+                            
+                            <div class="mb-3">
+                                <label for="{{ form.email_text.id_for_label }}" class="form-label fw-bold">
+                                    {{ form.email_text.label }}
+                                </label>
+                                {{ form.email_text }}
+                                <div class="form-text">{{ form.email_text.help_text }}</div>
+                                
+                                {% if form.email_text.errors %}
+                                <div class="alert alert-danger alert-custom mt-2" role="alert">
+                                    {% for error in form.email_text.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="text-center">
+                                <button type="submit" class="btn btn-primary btn-analyze">
+                                    🔍 Analizar Email
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                
+                <!-- Info Section -->
+                <div class="card mt-4">
+                    <div class="card-body">
+                        <h5 class="card-title">ℹ️ Información del Modelo</h5>
+                        <ul class="mb-0">
+                            <li><strong>Algoritmo:</strong> Regresión Logística</li>
+                            <li><strong>Vectorización:</strong> CountVectorizer (Bag of Words)</li>
+                            <li><strong>Dataset:</strong> TREC 2007 Spam Corpus (15,000 emails)</li>
+                            <li><strong>Vocabulario:</strong> 5,000 features más relevantes</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
